@@ -6,31 +6,18 @@ require('dotenv').config();
 const app = express();
 
 // 🌟 CORS CONFIGURATION 🌟
+const cors = require('cors');
+
+// Konfigurasi CORS yang lebih permisif
 app.use(cors({
-  origin: function (origin, callback) {
-    // Izinkan request tanpa origin (Postman, mobile app)
-    if (!origin) return callback(null, true);
-    
-    // Izinkan localhost (development)
-    if (origin.startsWith('http://localhost')) return callback(null, true);
-    
-    // Izinkan IP lokal
-    if (origin.match(/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/)) {
-      return callback(null, true);
-    }
-    
-    // Izinkan Vercel (production)
-    if (origin.endsWith('.vercel.app')) return callback(null, true);
-    
-    // Izinkan environment variable
-    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
-    }
-    
-    callback(null, true); // Fallback: izinkan semua
-  },
-  credentials: true
+  origin: true, // Izinkan semua origin
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Name', 'X-User-Role']
 }));
+
+// Handle preflight request
+app.options('*', cors());
 
 app.use(express.json());
 
