@@ -7,25 +7,7 @@ const app = express();
 
 // 🌟 CORS CONFIGURATION 🌟
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow request tanpa origin (seperti dari Postman)
-    if (!origin) return callback(null, true);
-    
-    // Allow localhost
-    if (origin.startsWith('http://localhost')) return callback(null, true);
-    
-    // Allow semua IP lokal (192.168.x.x, 10.x.x.x, 172.x.x.x)
-    if (origin.match(/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/)) {
-      return callback(null, true);
-    }
-    
-    // Allow dari environment variable
-    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
-    }
-    
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: '*', // Izinkan semua origin (untuk development)
   credentials: true
 }));
 
