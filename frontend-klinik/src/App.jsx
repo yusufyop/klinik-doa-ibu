@@ -530,18 +530,40 @@ export default function App() {
   };
 
   const handleSaveUser = async (e) => { 
-    e.preventDefault(); 
-    try { 
-      if (editingData) await axios.put(`${API_URL}/users/${editingData.id}`, userForm, axiosWithUser()); 
-      else await axios.post(`${API_URL}/users`, userForm, axiosWithUser()); 
-      showToast('User disimpan!', 'success'); 
-      setShowModal(null); 
-      setUserForm({ nama: '', email: '', password: '', role: 'dokter' });
-      fetchUsers();
-    } catch (err) { 
-      showToast(err.response?.data?.error || 'Gagal simpan user', 'error'); 
-    } 
-  };
+  e.preventDefault(); 
+  
+  // 🌟 VALIDASI FIELD WAJIB 🌟
+  if (!userForm.nama || !userForm.email || !userForm.role) {
+    showToast('Nama, email, dan role wajib diisi!', 'error');
+    return;
+  }
+  
+  try { 
+    const payload = {
+      nama_lengkap: userForm.nama,
+      email: userForm.email,
+      role: userForm.role
+    };
+    
+    // 🌟 TAMBAH PASSWORD HANYA JIKA ADA 🌟
+    if (userForm.password) {
+      payload.password = userForm.password;
+    }
+    
+    if (editingData) {
+      await axios.put(`${API_URL}/users/${editingData.id}`, payload, axiosWithUser()); 
+    } else {
+      await axios.post(`${API_URL}/users`, payload, axiosWithUser()); 
+    }
+    
+    showToast('User disimpan!', 'success'); 
+    setShowModal(null); 
+    setUserForm({ nama: '', email: '', password: '', role: 'dokter' });
+    fetchUsers();
+  } catch (err) { 
+    showToast(err.response?.data?.error || 'Gagal simpan user', 'error'); 
+  } 
+};
 
   const handleDeleteUser = async (id) => { 
     if(!confirm('Hapus user?')) return; 
