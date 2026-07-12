@@ -486,15 +486,6 @@ export default function App() {
   const handleSaveExam = async (e) => { 
   e.preventDefault(); 
   
-  // 🌟 DEBUG: Cek apakah obat ada di cart 🌟
-  console.log('Cart Obat:', cartObat);
-  console.log('Exam Form:', examForm);
-  
-  if (cartObat.length === 0) {
-    const confirmNoObat = window.confirm('Tidak ada obat yang ditambahkan. Lanjut simpan tanpa obat?');
-    if (!confirmNoObat) return;
-  }
-  
   try { 
     const payload = { 
       patient_id: selectedPatient.id,
@@ -510,14 +501,15 @@ export default function App() {
       diagnosa: examForm.diagnosa,
       catatan: examForm.catatan,
       status: examForm.status,
+      // 🌟 FORMAT OBAT DENGAN BENAR 🌟
       obat_list: cartObat.map(o => ({
         medicine_id: parseInt(o.medicine_id),
-        jumlah: parseInt(o.jumlah),
+        jumlah: parseInt(o.jumlah) || 1,
         aturan: o.aturan || ''
       }))
     };
     
-    console.log('Payload yang dikirim:', payload);
+    console.log('Saving examination with obat_list:', payload.obat_list);
     
     if (editingData) {
       await axios.put(`${API_URL}/examination/${editingData.visit_id}`, payload, axiosWithUser()); 
@@ -534,7 +526,6 @@ export default function App() {
     fetchMedicines();
   } catch (err) { 
     console.error('Error save exam:', err);
-    console.error('Error response:', err.response?.data);
     showToast(err.response?.data?.error || 'Gagal simpan RM', 'error'); 
   } 
 };
