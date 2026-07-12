@@ -7,7 +7,28 @@ const app = express();
 
 // 🌟 CORS CONFIGURATION 🌟
 app.use(cors({
-  origin: '*', // Izinkan semua origin (untuk development)
+  origin: function (origin, callback) {
+    // Izinkan request tanpa origin (Postman, mobile app)
+    if (!origin) return callback(null, true);
+    
+    // Izinkan localhost (development)
+    if (origin.startsWith('http://localhost')) return callback(null, true);
+    
+    // Izinkan IP lokal
+    if (origin.match(/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/)) {
+      return callback(null, true);
+    }
+    
+    // Izinkan Vercel (production)
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    
+    // Izinkan environment variable
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+    
+    callback(null, true); // Fallback: izinkan semua
+  },
   credentials: true
 }));
 
