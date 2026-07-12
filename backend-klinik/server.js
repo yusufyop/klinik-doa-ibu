@@ -595,7 +595,7 @@ app.get('/api/patients/:id/history', (req, res) => {
     v.id as visit_id, v.tanggal_kunjungan, v.keluhan_utama, v.status, v.doctor_id,
     mr.diagnosa_utama, mr.tensi_darah, mr.suhu_badan, mr.nadi, mr.pernapasan, 
     mr.berat_badan, mr.tinggi_badan, mr.catatan_fisik, mr.catatan_dokter,
-    p.id as prescription_id, m.nama_obat, p.jumlah, p.aturan_pakai,
+    p.id as prescription_id, p.medicine_id, m.nama_obat, p.jumlah, p.aturan_pakai,
     t.grand_total as total_pembayaran
     FROM visits v 
     LEFT JOIN medical_records mr ON v.id = mr.visit_id 
@@ -614,12 +614,8 @@ app.get('/api/patients/:id/history', (req, res) => {
         const d = new Date(row.tanggal_kunjungan);
         const options = { 
           timeZone: 'Asia/Jakarta', 
-          day: '2-digit', 
-          month: '2-digit', 
-          year: 'numeric', 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          hour12: false 
+          day: '2-digit', month: '2-digit', year: 'numeric', 
+          hour: '2-digit', minute: '2-digit', hour12: false 
         };
         let formatted = new Intl.DateTimeFormat('en-GB', options).format(d);
         formatted = formatted.replace(',', '').replace(':', '.') + ' WIB';
@@ -643,8 +639,11 @@ app.get('/api/patients/:id/history', (req, res) => {
           total_pembayaran: row.total_pembayaran
         };
       }
+      
+      // 🌟 TAMBAHKAN medicine_id KE RESPONSE 🌟
       if (row.prescription_id) {
         map[row.visit_id].obat.push({
+          medicine_id: row.medicine_id, // ← INI YANG HILANG!
           nama: row.nama_obat,
           jumlah: row.jumlah,
           aturan: row.aturan_pakai
@@ -710,65 +709,95 @@ app.post('/api/examination', (req, res) => {
   );
 });
 
-app.put('/api/examination/:visitId', (req, res) => {
-  const visitId = req.params.visitId;
-  const { keluhan, tensi, suhu, nadi, napas, berat, tinggi, catatan_fisik, diagnosa, catatan, obat_list, status } = req.body;
-  
-  db.query(`UPDATE visits SET keluhan_utama=?, status=? WHERE id=?`, [clean(keluhan), status || 'diperiksa', visitId], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
+app.put('/api/examination/:visitId', async (req, res) => {
+  try {
+    const visitId = req.params.visitId;
+    const { keluhan, tensi, suhu, nadi, napas, berat, tinggi, catatan_fisik, diagnosa, catatan, obat_list, status } = req.body;
     
-    db.query(
-      `UPDATE medical_records SET diagnosa_utama=?, tensi_darah=?, suhu_badan=?, nadi=?, pernapasan=?, berat_badan=?, tinggi_badan=?, catatan_fisik=?, catatan_dokter=? WHERE visit_id=?`,
-      [clean(diagnosa), clean(tensi), clean(suhu), clean(nadi), clean(napas), clean(berat), clean(tinggi), clean(catatan_fisik), clean(catatan), visitId],
-      (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        logAudit(req, 'update', 'visits', visitId, `Rekam medis dikoreksi`);
-        
-        db.query(`SELECT medicine_id, jumlah FROM prescriptions WHERE visit_id=?`, [visitId], (err, oldPrescriptions) => {
-          if (err) return res.status(500).json({ error: err.message });
-          
-          const restorePromises = oldPrescriptions.map(p => new Promise((resolve) => {
-            db.query(`UPDATE medicines SET stok = stok + ? WHERE id = ?`, [p.jumlah, p.medicine_id], () => resolve());
-          }));
-          
-          Promise.all(restorePromises).then(() => {
-            db.query(`DELETE FROM prescriptions WHERE visit_id=?`, [visitId], (err) => {
-              if (err) return res.status(500).json({ error: err.message });
-              
-              if (obat_list && obat_list.length > 0) {
-                const insertPromises = obat_list.map(o => new Promise((resolve) => {
-                  const medId = parseInt(o.medicine_id);
-                  const jumlah = parseInt(o.jumlah) || 1;
-                  
-                  db.query(`SELECT id FROM medicines WHERE id = ?`, [medId], (err, medResult) => {
-                    if (err || medResult.length === 0) return resolve();
-                    
-                    db.query(
-                      `INSERT INTO prescriptions (visit_id, medicine_id, jumlah, aturan_pakai) VALUES (?, ?, ?, ?)`,
-                      [visitId, medId, jumlah, clean(o.aturan)],
-                      (err) => {
-                        if (err) return resolve();
-                        db.query(`UPDATE medicines SET stok = stok - ? WHERE id = ?`, [jumlah, medId], () => {
-                          invalidateCache('medicines');
-                          resolve();
-                        });
-                      }
-                    );
-                  });
-                }));
-                
-                Promise.all(insertPromises).then(() => {
-                  res.json({ success: true, message: 'Rekam medis dikoreksi!' });
-                });
-              } else {
-                res.json({ success: true, message: 'Rekam medis dikoreksi!' });
-              }
-            });
-          });
-        });
-      }
+    console.log('Updating examination:', { visitId, obat_list });
+    
+    // 1. Update visit
+    await db.promise().query(
+      `UPDATE visits SET keluhan_utama=?, status=? WHERE id=?`,
+      [clean(keluhan), status || 'diperiksa', visitId]
     );
-  });
+    
+    // 2. Update medical record
+    await db.promise().query(
+      `UPDATE medical_records SET diagnosa_utama=?, tensi_darah=?, suhu_badan=?, nadi=?, pernapasan=?, berat_badan=?, tinggi_badan=?, catatan_fisik=?, catatan_dokter=? WHERE visit_id=?`,
+      [clean(diagnosa), clean(tensi), clean(suhu), clean(nadi), clean(napas), clean(berat), clean(tinggi), clean(catatan_fisik), clean(catatan), visitId]
+    );
+    
+    // 3. 🌟 HANYA UPDATE OBAT JIKA obat_list DIKIRIM & TIDAK KOSONG 🌟
+    if (obat_list !== undefined && obat_list !== null) {
+      console.log('Processing obat_list for update:', obat_list);
+      
+      // Restore stok obat lama
+      const [oldPrescriptions] = await db.promise().query(
+        `SELECT medicine_id, jumlah FROM prescriptions WHERE visit_id=?`,
+        [visitId]
+      );
+      
+      for (const p of oldPrescriptions) {
+        await db.promise().query(
+          `UPDATE medicines SET stok = stok + ? WHERE id = ?`,
+          [p.jumlah, p.medicine_id]
+        );
+      }
+      
+      // Hapus prescriptions lama
+      await db.promise().query(
+        `DELETE FROM prescriptions WHERE visit_id=?`,
+        [visitId]
+      );
+      
+      // Insert prescriptions baru (hanya kalau ada)
+      if (obat_list.length > 0) {
+        for (const o of obat_list) {
+          const medId = parseInt(o.medicine_id);
+          const jumlah = parseInt(o.jumlah) || 1;
+          
+          if (!medId) {
+            console.warn('Skip obat tanpa medicine_id:', o);
+            continue;
+          }
+          
+          // Cek obat ada
+          const [medResult] = await db.promise().query(
+            `SELECT id FROM medicines WHERE id = ?`,
+            [medId]
+          );
+          
+          if (medResult.length === 0) {
+            console.warn(`Obat ID ${medId} tidak ditemukan, skip`);
+            continue;
+          }
+          
+          // Insert prescription
+          await db.promise().query(
+            `INSERT INTO prescriptions (visit_id, medicine_id, jumlah, aturan_pakai) VALUES (?, ?, ?, ?)`,
+            [visitId, medId, jumlah, clean(o.aturan)]
+          );
+          
+          // Update stok
+          await db.promise().query(
+            `UPDATE medicines SET stok = stok - ? WHERE id = ?`,
+            [jumlah, medId]
+          );
+        }
+      }
+      
+      invalidateCache('medicines');
+    }
+    
+    logAudit(req, 'update', 'visits', visitId, `Rekam medis dikoreksi`);
+    
+    res.json({ success: true, message: 'Rekam medis dikoreksi!' });
+    
+  } catch (err) {
+    console.error('Error updating examination:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ============================================
