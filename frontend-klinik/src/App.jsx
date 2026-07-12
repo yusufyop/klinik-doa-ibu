@@ -1630,66 +1630,105 @@ export default function App() {
         </div>
       )}
 
-      {/* 🌟 MODAL REKAM MEDIS 🌟 */}
-      {showModal === 'exam' && (
-        <div className="modal-overlay" onClick={() => setShowModal(null)}>
-          <div className="card w-full max-w-3xl mx-4 overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold text-slate-800">{editingData ? 'Edit Rekam Medis' : 'Buat Rekam Medis'}</h2>
-              <button onClick={() => setShowModal(null)} className="text-2xl text-slate-400 touch-btn">&times;</button>
-            </div>
-            <form onSubmit={handleSaveExam} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Dokter</label><select className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={examForm.dokter_id} onChange={e => setExamForm({...examForm, dokter_id: e.target.value})}>{users.filter(u => u.role === 'dokter').map(d => <option key={d.id} value={d.id}>{d.nama_lengkap}</option>)}</select></div>
-                <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Status</label><select className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={examForm.status} onChange={e => setExamForm({...examForm, status: e.target.value})}><option value="mengantri">Mengantri</option><option value="diperiksa">Diperiksa</option><option value="batal">Batal</option><option value="sudah_bayar">Sudah Bayar</option></select></div>
-              </div>
-              <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Keluhan Utama</label><textarea className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" rows="2" value={examForm.keluhan} onChange={e => setExamForm({...examForm, keluhan: e.target.value})}></textarea></div>
-              <div>
-                <label className="text-sm font-semibold text-slate-700 mb-2 block">Pemeriksaan Fisik</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div><label className="text-xs text-slate-500">Tensi</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.tensi} onChange={e => setExamForm({...examForm, tensi: e.target.value})} /></div>
-                  <div><label className="text-xs text-slate-500">Suhu</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.suhu} onChange={e => setExamForm({...examForm, suhu: e.target.value})} /></div>
-                  <div><label className="text-xs text-slate-500">Nadi</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.nadi} onChange={e => setExamForm({...examForm, nadi: e.target.value})} /></div>
-                  <div><label className="text-xs text-slate-500">Napas</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.napas} onChange={e => setExamForm({...examForm, napas: e.target.value})} /></div>
-                  <div><label className="text-xs text-slate-500">Berat</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.berat} onChange={e => setExamForm({...examForm, berat: e.target.value})} /></div>
-                  <div><label className="text-xs text-slate-500">Tinggi</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.tinggi} onChange={e => setExamForm({...examForm, tinggi: e.target.value})} /></div>
-                </div>
-                <div className="mt-3"><label className="text-xs text-slate-500">Catatan Fisik</label><textarea className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" rows="2" value={examForm.catatan_fisik} onChange={e => setExamForm({...examForm, catatan_fisik: e.target.value})}></textarea></div>
-              </div>
-              <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Diagnosa</label><input type="text" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={examForm.diagnosa} onChange={e => setExamForm({...examForm, diagnosa: e.target.value})} /></div>
-              <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Catatan Dokter</label><textarea className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" rows="2" value={examForm.catatan} onChange={e => setExamForm({...examForm, catatan: e.target.value})}></textarea></div>
-              <div className="border-t pt-4">
-                <label className="text-sm font-semibold text-slate-700 mb-2 block">Resep Obat</label>
-                <div className="flex gap-2 items-end flex-wrap">
-                  <select className="flex-grow px-4 py-2 border border-slate-200 rounded-xl outline-none min-w-[200px]" value={selectedMedId} onChange={e => setSelectedMedId(e.target.value)}>
-                    <option value="">-- Pilih Obat --</option>
-                    {medicines.map(m => <option key={m.id} value={m.id}>{m.nama_obat} (Stok: {m.stok})</option>)}
-                  </select>
-                  <input type="number" min="1" placeholder="Jml" className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none" value={medQty} onChange={e => setMedQty(e.target.value)} />
-                  <input type="text" placeholder="3x1" className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none" value={medRule} onChange={e => setMedRule(e.target.value)} />
-                  <button type="button" onClick={() => { 
-                    if(!selectedMedId) return; 
-                    const med = medicines.find(m => m.id === parseInt(selectedMedId)); 
-                    setCartObat([...cartObat, { medicine_id: med.id, nama: med.nama_obat, jumlah: medQty, aturan: medRule }]); 
-                    setSelectedMedId(''); setMedQty(1); setMedRule(''); 
-                  }} className="bg-slate-100 px-4 py-2 rounded-xl font-semibold hover:bg-slate-200 touch-btn">+</button>
-                </div>
-                {cartObat.length > 0 && (
-                  <ul className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    {cartObat.map((o, i) => (
-                      <li key={i} className="flex justify-between text-sm mb-1">
-                        <span>💊 {o.nama} - {o.jumlah} unit ({o.aturan})</span>
-                        <button type="button" onClick={() => setCartObat(cartObat.filter((_, idx) => idx !== i))} className="text-red-500 touch-btn">x</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <button type="submit" className="btn-primary w-full">💾 Simpan</button>
-            </form>
+      {/* 🌟 MODAL REKAM MEDIS - SCROLLABLE 🌟 */}
+{showModal === 'exam' && (
+  <div className="modal-overlay" onClick={() => setShowModal(null)}>
+    <div className="card w-full max-w-3xl mx-4" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header Sticky */}
+      <div className="p-4 md:p-6 border-b border-slate-200 flex justify-between items-center flex-shrink-0 bg-white sticky top-0 z-10">
+        <h2 className="text-lg md:text-xl font-bold text-slate-800">
+          {editingData ? 'Edit Rekam Medis' : 'Buat Rekam Medis'}
+        </h2>
+        <button onClick={() => setShowModal(null)} className="text-2xl text-slate-400 touch-btn">&times;</button>
+      </div>
+      
+      {/* Content Scrollable */}
+      <form onSubmit={handleSaveExam} className="p-4 md:p-6 space-y-4 overflow-y-auto flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mb-1 block">Dokter</label>
+            <select className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={examForm.dokter_id} onChange={e => setExamForm({...examForm, dokter_id: e.target.value})}>
+              {users.filter(u => u.role === 'dokter').map(d => <option key={d.id} value={d.id}>{d.nama_lengkap}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-700 mb-1 block">Status</label>
+            <select className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={examForm.status} onChange={e => setExamForm({...examForm, status: e.target.value})}>
+              <option value="mengantri">Mengantri</option>
+              <option value="diperiksa">Diperiksa</option>
+              <option value="batal">Batal</option>
+              <option value="sudah_bayar">Sudah Bayar</option>
+            </select>
           </div>
         </div>
-      )}
+        
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Keluhan Utama</label>
+          <textarea className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" rows="2" value={examForm.keluhan} onChange={e => setExamForm({...examForm, keluhan: e.target.value})}></textarea>
+        </div>
+        
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">Pemeriksaan Fisik</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div><label className="text-xs text-slate-500">Tensi</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.tensi} onChange={e => setExamForm({...examForm, tensi: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-500">Suhu</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.suhu} onChange={e => setExamForm({...examForm, suhu: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-500">Nadi</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.nadi} onChange={e => setExamForm({...examForm, nadi: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-500">Napas</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.napas} onChange={e => setExamForm({...examForm, napas: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-500">Berat</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.berat} onChange={e => setExamForm({...examForm, berat: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-500">Tinggi</label><input type="text" className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" value={examForm.tinggi} onChange={e => setExamForm({...examForm, tinggi: e.target.value})} /></div>
+          </div>
+          <div className="mt-3">
+            <label className="text-xs text-slate-500">Catatan Fisik</label>
+            <textarea className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none" rows="2" value={examForm.catatan_fisik} onChange={e => setExamForm({...examForm, catatan_fisik: e.target.value})}></textarea>
+          </div>
+        </div>
+        
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Diagnosa</label>
+          <input type="text" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={examForm.diagnosa} onChange={e => setExamForm({...examForm, diagnosa: e.target.value})} />
+        </div>
+        
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Catatan Dokter</label>
+          <textarea className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" rows="2" value={examForm.catatan} onChange={e => setExamForm({...examForm, catatan: e.target.value})}></textarea>
+        </div>
+        
+        <div className="border-t pt-4">
+          <label className="text-sm font-semibold text-slate-700 mb-2 block">Resep Obat</label>
+          <div className="flex gap-2 items-end flex-wrap">
+            <select className="flex-grow px-4 py-2 border border-slate-200 rounded-xl outline-none min-w-[200px]" value={selectedMedId} onChange={e => setSelectedMedId(e.target.value)}>
+              <option value="">-- Pilih Obat --</option>
+              {medicines.map(m => <option key={m.id} value={m.id}>{m.nama_obat} (Stok: {m.stok})</option>)}
+            </select>
+            <input type="number" min="1" placeholder="Jml" className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none" value={medQty} onChange={e => setMedQty(e.target.value)} />
+            <input type="text" placeholder="3x1" className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none" value={medRule} onChange={e => setMedRule(e.target.value)} />
+            <button type="button" onClick={() => { 
+              if(!selectedMedId) return; 
+              const med = medicines.find(m => m.id === parseInt(selectedMedId)); 
+              setCartObat([...cartObat, { medicine_id: med.id, nama: med.nama_obat, jumlah: medQty, aturan: medRule }]); 
+              setSelectedMedId(''); setMedQty(1); setMedRule(''); 
+            }} className="bg-slate-100 px-4 py-2 rounded-xl font-semibold hover:bg-slate-200 touch-btn">+</button>
+          </div>
+          {cartObat.length > 0 && (
+            <ul className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              {cartObat.map((o, i) => (
+                <li key={i} className="flex justify-between text-sm mb-1">
+                  <span>💊 {o.nama} - {o.jumlah} unit ({o.aturan})</span>
+                  <button type="button" onClick={() => setCartObat(cartObat.filter((_, idx) => idx !== i))} className="text-red-500 touch-btn">x</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        
+        {/* Tombol Simpan Sticky di Bawah */}
+        <div className="sticky bottom-0 bg-white pt-4 pb-2 -mx-4 px-4 md:-mx-6 md:px-6 border-t border-slate-100">
+          <button type="submit" className="btn-primary w-full">💾 Simpan Rekam Medis</button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
 
       {/* 🌟 MODAL DETAIL 🌟 */}
       {showModal === 'detail' && editingData && (
