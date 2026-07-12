@@ -484,21 +484,60 @@ export default function App() {
   };
 
   const handleSaveExam = async (e) => { 
-    e.preventDefault(); 
-    try { 
-      const payload = { ...examForm, patient_id: selectedPatient.id, obat_list: cartObat }; 
-      if (editingData) await axios.put(`${API_URL}/examination/${editingData.visit_id}`, payload, axiosWithUser()); 
-      else await axios.post(`${API_URL}/examination`, payload, axiosWithUser()); 
-      showToast('Rekam medis disimpan!', 'success'); 
-      setShowModal(null); 
-      setCartObat([]); 
-      if (page === 'rm_pasien') handleViewHistory(selectedPatient);
-      if (page === 'all_records') fetchAllRecords();
-      fetchMedicines();
-    } catch (err) { 
-      showToast(err.response?.data?.error || 'Gagal simpan RM', 'error'); 
-    } 
-  };
+  e.preventDefault(); 
+  
+  // 🌟 DEBUG: Cek apakah obat ada di cart 🌟
+  console.log('Cart Obat:', cartObat);
+  console.log('Exam Form:', examForm);
+  
+  if (cartObat.length === 0) {
+    const confirmNoObat = window.confirm('Tidak ada obat yang ditambahkan. Lanjut simpan tanpa obat?');
+    if (!confirmNoObat) return;
+  }
+  
+  try { 
+    const payload = { 
+      patient_id: selectedPatient.id,
+      dokter_id: examForm.dokter_id,
+      keluhan: examForm.keluhan,
+      tensi: examForm.tensi,
+      suhu: examForm.suhu,
+      nadi: examForm.nadi,
+      napas: examForm.napas,
+      berat: examForm.berat,
+      tinggi: examForm.tinggi,
+      catatan_fisik: examForm.catatan_fisik,
+      diagnosa: examForm.diagnosa,
+      catatan: examForm.catatan,
+      status: examForm.status,
+      obat_list: cartObat.map(o => ({
+        medicine_id: parseInt(o.medicine_id),
+        jumlah: parseInt(o.jumlah),
+        aturan: o.aturan || ''
+      }))
+    };
+    
+    console.log('Payload yang dikirim:', payload);
+    
+    if (editingData) {
+      await axios.put(`${API_URL}/examination/${editingData.visit_id}`, payload, axiosWithUser()); 
+    } else {
+      await axios.post(`${API_URL}/examination`, payload, axiosWithUser()); 
+    }
+    
+    showToast('Rekam medis disimpan!', 'success'); 
+    setShowModal(null); 
+    setCartObat([]); 
+    
+    if (page === 'rm_pasien') handleViewHistory(selectedPatient);
+    if (page === 'all_records') fetchAllRecords();
+    fetchMedicines();
+  } catch (err) { 
+    console.error('Error save exam:', err);
+    console.error('Error response:', err.response?.data);
+    showToast(err.response?.data?.error || 'Gagal simpan RM', 'error'); 
+  } 
+};
   
   const handleStartEdit = (h) => {
     setEditingData(h);
@@ -1702,12 +1741,40 @@ export default function App() {
             </select>
             <input type="number" min="1" placeholder="Jml" className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none" value={medQty} onChange={e => setMedQty(e.target.value)} />
             <input type="text" placeholder="3x1" className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none" value={medRule} onChange={e => setMedRule(e.target.value)} />
-            <button type="button" onClick={() => { 
-              if(!selectedMedId) return; 
-              const med = medicines.find(m => m.id === parseInt(selectedMedId)); 
-              setCartObat([...cartObat, { medicine_id: med.id, nama: med.nama_obat, jumlah: medQty, aturan: medRule }]); 
-              setSelectedMedId(''); setMedQty(1); setMedRule(''); 
-            }} className="bg-slate-100 px-4 py-2 rounded-xl font-semibold hover:bg-slate-200 touch-btn">+</button>
+            <button 
+  type="button" 
+  onClick={() => { 
+    if(!selectedMedId) {
+      showToast('Pilih obat dulu!', 'warning');
+      return;
+    }
+    
+    const med = medicines.find(m => m.id === parseInt(selectedMedId));
+    if (!med) {
+      showToast('Obat tidak ditemukan!', 'error');
+      return;
+    }
+    
+    const newObat = {
+      medicine_id: med.id,
+      nama: med.nama_obat,
+      jumlah: parseInt(medQty) || 1,
+      aturan: medRule || '-'
+    };
+    
+    console.log('Menambahkan obat:', newObat);
+    
+    setCartObat([...cartObat, newObat]);
+    setSelectedMedId('');
+    setMedQty(1);
+    setMedRule('');
+    
+    showToast(`Obat ${med.nama_obat} ditambahkan!`, 'success');
+  }} 
+  className="bg-slate-100 px-4 py-2 rounded-xl font-semibold hover:bg-slate-200 touch-btn"
+>
+  +
+</button>
           </div>
           {cartObat.length > 0 && (
             <ul className="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
