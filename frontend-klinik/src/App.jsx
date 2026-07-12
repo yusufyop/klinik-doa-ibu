@@ -1813,22 +1813,62 @@ export default function App() {
 
       {/* 🌟 MODAL USER 🌟 */}
       {showModal === 'user' && (
-        <div className="modal-overlay" onClick={() => setShowModal(null)}>
-          <div className="card w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-800">{editingData ? 'Edit User' : 'Tambah User'}</h2>
-              <button onClick={() => setShowModal(null)} className="text-2xl text-slate-400 touch-btn">&times;</button>
-            </div>
-            <form onSubmit={handleSaveUser} className="p-6 space-y-4">
-              <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Nama</label><input type="text" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={userForm.nama} onChange={e => setUserForm({...userForm, nama: e.target.value})} required /></div>
-              <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Email</label><input type="email" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} required /></div>
-              {!editingData && <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Password</label><input type="password" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} required /></div>}
-              <div><label className="text-sm font-semibold text-slate-700 mb-1 block">Role</label><select className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})}><option value="admin">Admin</option><option value="dokter">Dokter</option><option value="perawat">Perawat</option></select></div>
-              <button type="submit" className="btn-primary w-full">Simpan</button>
-            </form>
-          </div>
+  <div className="modal-overlay" onClick={() => setShowModal(null)}>
+    <div className="card w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+      <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-slate-800">{editingData ? 'Edit User' : 'Tambah User'}</h2>
+        <button onClick={() => setShowModal(null)} className="text-2xl text-slate-400 touch-btn">&times;</button>
+      </div>
+      <form onSubmit={handleSaveUser} className="p-6 space-y-4">
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Nama</label>
+          <input 
+            type="text" 
+            className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" 
+            value={userForm.nama} 
+            onChange={e => setUserForm({...userForm, nama: e.target.value})} 
+            required 
+          />
         </div>
-      )}
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Email</label>
+          <input 
+            type="email" 
+            className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" 
+            value={userForm.email} 
+            onChange={e => setUserForm({...userForm, email: e.target.value})} 
+            required 
+          />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">
+            Password {editingData ? '(Kosongkan jika tidak diubah)' : ''}
+          </label>
+          <input 
+            type="password" 
+            className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" 
+            value={userForm.password} 
+            onChange={e => setUserForm({...userForm, password: e.target.value})} 
+            required={!editingData}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Role</label>
+          <select 
+            className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" 
+            value={userForm.role} 
+            onChange={e => setUserForm({...userForm, role: e.target.value})}
+          >
+            <option value="admin">Admin</option>
+            <option value="dokter">Dokter</option>
+            <option value="perawat">Perawat</option>
+          </select>
+        </div>
+        <button type="submit" className="btn-primary w-full">Simpan</button>
+      </form>
+    </div>
+  </div>
+)}
 
       {/* 🌟 MODAL RESET PASSWORD 🌟 */}
       {showModal === 'resetPassword' && editingData && (
