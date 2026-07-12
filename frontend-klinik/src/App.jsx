@@ -4,6 +4,11 @@ import * as XLSX from 'xlsx';
 
 // 🌟 AUTO DETECT API URL 🌟
 const getApiUrl = () => {
+  // Pakai environment variable dari Vercel
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Fallback untuk development lokal
   const hostname = window.location.hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:5000/api';
@@ -12,6 +17,7 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
+
 
 // 🌟 HELPER FUNCTIONS 🌟
 const formatRupiah = (amount) => {
