@@ -42,12 +42,12 @@ const Toast = ({ message, type, onClose }) => {
   useEffect(() => { 
     const t = setTimeout(() => {
       onClose();
-    }, 3000); // 3 detik
+    }, 2700); // 2.7 detik (sisakan 0.3s untuk fade out animation)
     return () => clearTimeout(t); 
   }, [onClose]);
   
   return (
-    <div className={`toast toast-${type}`} style={{ animation: 'fadeInOut 3s ease-in-out' }}>
+    <div className={`toast toast-${type}`}>
       {message}
     </div>
   );
@@ -378,8 +378,8 @@ export default function App() {
   };
 
   const getSortIcon = (column, sortState) => {
-    if (sortState.column !== column) return '↕️';
-    return sortState.order === 'ASC' ? '↑' : '↓';
+    // Tidak menampilkan icon, hanya sorting functionality
+    return '';
   };
 
   const robustSort = (arr, column, order, valueExtractor = null) => {
