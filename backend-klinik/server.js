@@ -105,14 +105,15 @@ app.post('/api/login', (req, res) => {
   const { email, username, password } = req.body;
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   
-  // Login bisa menggunakan email ATAU username (nama_lengkap)
-  const loginIdentifier = email || username;
+  // Login HANYA menggunakan username (nama_lengkap), email tidak wajib
+  const loginIdentifier = username || email;
   
   if (!loginIdentifier) {
-    return res.status(400).json({ success: false, message: 'Email atau Username harus diisi!' });
+    return res.status(400).json({ success: false, message: 'Username harus diisi!' });
   }
   
-  db.query(`SELECT * FROM users WHERE (email = ? OR nama_lengkap = ?) AND password_hash = ?`, [loginIdentifier, loginIdentifier, password], (err, results) => {
+  // Cek berdasarkan username (nama_lengkap) saja, bukan email
+  db.query(`SELECT * FROM users WHERE nama_lengkap = ? AND password_hash = ?`, [loginIdentifier, password], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     if (results.length === 0) {
@@ -120,7 +121,7 @@ app.post('/api/login', (req, res) => {
         `INSERT INTO audit_logs (user_name, action_type, target_table, description, ip_address) VALUES (?, ?, ?, ?, ?)`,
         [loginIdentifier, 'login', 'users', `Login gagal: ${loginIdentifier}`, ip]
       );
-      return res.status(401).json({ success: false, message: 'Email/Username atau Password salah!' });
+      return res.status(401).json({ success: false, message: 'Username atau Password salah!' });
     }
     
     const user = results[0];
@@ -215,20 +216,22 @@ app.get('/api/users', (req, res) => {
 app.post('/api/users', (req, res) => {
   const { nama_lengkap, email, password, role } = req.body;
   
-  if (!nama_lengkap || !email || !password || !role) {
-    return res.status(400).json({ error: 'Semua field wajib diisi!' });
+  // Email tidak wajib, hanya username (nama_lengkap) yang wajib
+  if (!nama_lengkap || !password || !role) {
+    return res.status(400).json({ error: 'Username dan password wajib diisi!' });
   }
   
-  db.query(`SELECT id FROM users WHERE email = ?`, [email], (e, existing) => {
+  // Cek jika username sudah ada
+  db.query(`SELECT id FROM users WHERE nama_lengkap = ?`, [nama_lengkap], (e, existing) => {
     if (e) return res.status(500).json({ error: e.message });
     
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'Email sudah terdaftar!' });
+      return res.status(400).json({ error: 'Username sudah terdaftar!' });
     }
     
     db.query(
       `INSERT INTO users (nama_lengkap, email, password_hash, role) VALUES (?, ?, ?, ?)`,
-      [nama_lengkap, email, password, role],
+      [nama_lengkap, email || null, password, role],
       (e, result) => {
         if (e) return res.status(500).json({ error: e.message });
         invalidateCache('users');
@@ -242,9 +245,14 @@ app.post('/api/users', (req, res) => {
 app.put('/api/users/:id', (req, res) => {
   const { nama_lengkap, email, role } = req.body;
   
+  // Hanya update nama_lengkap yang wajib
+  if (!nama_lengkap) {
+    return res.status(400).json({ error: 'Username wajib diisi!' });
+  }
+  
   db.query(
     `UPDATE users SET nama_lengkap=?, email=?, role=? WHERE id=?`,
-    [nama_lengkap, email, role, req.params.id],
+    [nama_lengkap, email || null, role, req.params.id],
     (e) => {
       if (e) return res.status(500).json({ error: e.message });
       invalidateCache('users');
@@ -982,3 +990,135 @@ app.get('/api/cache-stats', (req, res) => {
 });
 
 
+
+// ============================================
+// 🔧 DATABASE CRUD EDITOR (ADMIN ONLY) - NEW
+// ============================================
+
+// Endpoint untuk mendapatkan daftar tabel
+app.get('/api/db-tables', (req, res) => {
+  const adminRole = req.headers['x-user-role'];
+  
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang bisa mengakses!' });
+  }
+  
+  db.query(
+    "SELECT TABLE_NAME as table_name, TABLE_ROWS as row_count FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?",
+    [process.env.DB_NAME],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, data: results });
+    }
+  );
+});
+
+// Endpoint untuk mendapatkan struktur kolom tabel
+app.get('/api/db-table-structure/:tableName', (req, res) => {
+  const adminRole = req.headers['x-user-role'];
+  const { tableName } = req.params;
+  
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang bisa mengakses!' });
+  }
+  
+  // Validasi nama tabel (hanya alphanumeric dan underscore)
+  if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
+    return res.status(400).json({ error: 'Nama tabel tidak valid!' });
+  }
+  
+  db.query(
+    `SELECT COLUMN_NAME as column_name, DATA_TYPE as data_type, CHARACTER_MAXIMUM_LENGTH as max_length, IS_NULLABLE as is_nullable, COLUMN_DEFAULT as default_value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?`,
+    [process.env.DB_NAME, tableName],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, data: results });
+    }
+  );
+});
+
+// Endpoint untuk CRUD operations
+app.post('/api/db-crud', (req, res) => {
+  const adminRole = req.headers['x-user-role'];
+  const { operation, table, data, where } = req.body;
+  
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang bisa mengakses!' });
+  }
+  
+  // Validasi nama tabel
+  if (!/^[a-zA-Z0-9_]+$/.test(table)) {
+    return res.status(400).json({ error: 'Nama tabel tidak valid!' });
+  }
+  
+  switch (operation) {
+    case 'select':
+      let selectQuery = `SELECT * FROM ${table}`;
+      if (where && Object.keys(where).length > 0) {
+        const conditions = Object.keys(where).map(key => `${key} = ?`);
+        selectQuery += ` WHERE ${conditions.join(' AND ')}`;
+        db.query(selectQuery, Object.values(where), (err, results) => {
+          if (err) return res.status(500).json({ error: err.message });
+          logAudit(req, 'read', table, null, `SELECT: ${selectQuery}`);
+          res.json({ success: true, data: results });
+        });
+      } else {
+        db.query(selectQuery, (err, results) => {
+          if (err) return res.status(500).json({ error: err.message });
+          logAudit(req, 'read', table, null, `SELECT: ${selectQuery}`);
+          res.json({ success: true, data: results });
+        });
+      }
+      break;
+      
+    case 'insert':
+      if (!data || typeof data !== 'object') {
+        return res.status(400).json({ error: 'Data harus berupa object!' });
+      }
+      const insertKeys = Object.keys(data);
+      const insertValues = Object.values(data);
+      const placeholders = insertKeys.map(() => '?').join(', ');
+      const insertQuery = `INSERT INTO ${table} (${insertKeys.join(', ')}) VALUES (${placeholders})`;
+      
+      db.query(insertQuery, insertValues, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        logAudit(req, 'create', table, result.insertId, `INSERT into ${table}`);
+        res.json({ success: true, message: 'Data berhasil ditambahkan!', insertId: result.insertId });
+      });
+      break;
+      
+    case 'update':
+      if (!data || typeof data !== 'object' || !where || typeof where !== 'object') {
+        return res.status(400).json({ error: 'Data dan Where harus berupa object!' });
+      }
+      const updateKeys = Object.keys(data);
+      const updateSet = updateKeys.map(key => `${key} = ?`).join(', ');
+      const updateValues = [...Object.values(data), ...Object.values(where)];
+      const whereConditions = Object.keys(where).map(key => `${key} = ?`).join(' AND ');
+      const updateQuery = `UPDATE ${table} SET ${updateSet} WHERE ${whereConditions}`;
+      
+      db.query(updateQuery, updateValues, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        logAudit(req, 'update', table, where.id || null, `UPDATE ${table}`);
+        res.json({ success: true, message: 'Data berhasil diupdate!', affectedRows: result.affectedRows });
+      });
+      break;
+      
+    case 'delete':
+      if (!where || typeof where !== 'object') {
+        return res.status(400).json({ error: 'Where harus berupa object!' });
+      }
+      const deleteConditions = Object.keys(where).map(key => `${key} = ?`).join(' AND ');
+      const deleteQuery = `DELETE FROM ${table} WHERE ${deleteConditions}`;
+      
+      db.query(deleteQuery, Object.values(where), (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        logAudit(req, 'delete', table, where.id || null, `DELETE from ${table}`);
+        res.json({ success: true, message: 'Data berhasil dihapus!', affectedRows: result.affectedRows });
+      });
+      break;
+      
+    default:
+      res.status(400).json({ error: 'Operasi tidak valid! Gunakan: select, insert, update, atau delete' });
+  }
+});
