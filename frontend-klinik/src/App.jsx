@@ -928,6 +928,168 @@ export default function App() {
           </div>
         )}
 
+        {/* 🌟 DATABASE RAW QUERY EDITOR (ADMIN ONLY) 🌟 */}
+        {page === 'db_raw' && currentUser?.role === 'admin' && (
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-6">Database Raw Query Editor</h1>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              {/* Daftar Tabel */}
+              <div className="card p-4">
+                <h3 className="font-semibold text-slate-700 mb-3">Daftar Tabel</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {dbTables.length === 0 ? (
+                    <p className="text-slate-400 text-sm">Memuat tabel...</p>
+                  ) : (
+                    dbTables.map((tbl, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedTable(tbl.table_name);
+                          fetchTableData(tbl.table_name);
+                          fetchTableStructure(tbl.table_name);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
+                          selectedTable === tbl.table_name
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {tbl.table_name} <span className="text-xs opacity-70">({tbl.row_count} rows)</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Struktur Tabel */}
+              <div className="card p-4">
+                <h3 className="font-semibold text-slate-700 mb-3">Struktur: {selectedTable || '-'}</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {tableStructure.length === 0 ? (
+                    <p className="text-slate-400 text-sm">Pilih tabel untuk melihat struktur</p>
+                  ) : (
+                    tableStructure.map((col, idx) => (
+                      <div key={idx} className="text-xs bg-slate-50 p-2 rounded border border-slate-200">
+                        <div className="font-semibold text-slate-800">{col.column_name}</div>
+                        <div className="text-slate-500">{col.data_type}{col.max_length ? `(${col.max_length})` : ''}</div>
+                        <div className="text-slate-400">NULL: {col.is_nullable}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Form CRUD */}
+              <div className="card p-4">
+                <h3 className="font-semibold text-slate-700 mb-3">CRUD Operation</h3>
+                <div className="space-y-3">
+                  <select
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                    value={crudOperation}
+                    onChange={(e) => setCrudOperation(e.target.value)}
+                  >
+                    <option value="select">SELECT (View Data)</option>
+                    <option value="insert">INSERT (Add Data)</option>
+                    <option value="update">UPDATE (Edit Data)</option>
+                    <option value="delete">DELETE (Remove Data)</option>
+                  </select>
+
+                  {(crudOperation === 'insert' || crudOperation === 'update') && (
+                    <textarea
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono"
+                      rows="4"
+                      placeholder='Contoh: {"nama_lengkap": "John", "email": "john@example.com"}'
+                      value={crudData}
+                      onChange={(e) => setCrudData(e.target.value)}
+                    />
+                  )}
+
+                  {(crudOperation === 'update' || crudOperation === 'delete' || crudOperation === 'select') && (
+                    <textarea
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono"
+                      rows="3"
+                      placeholder='Contoh WHERE: {"id": 1}'
+                      value={crudWhere}
+                      onChange={(e) => setCrudWhere(e.target.value)}
+                    />
+                  )}
+
+                  <button
+                    onClick={handleCrudOperation}
+                    disabled={!selectedTable || crudLoading}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition touch-btn"
+                  >
+                    {crudLoading ? 'Processing...' : `Execute ${crudOperation.toUpperCase()}`}
+                  </button>
+
+                  {crudMessage && (
+                    <div className={`text-xs p-2 rounded ${crudMessage.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                      {crudMessage.text}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Hasil Query */}
+            {queryResults.length > 0 && (
+              <div className="card overflow-hidden mobile-card-view">
+                <h3 className="font-semibold text-slate-700 p-4 border-b border-slate-200">
+                  Hasil: {selectedTable} ({queryResults.length} rows)
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                      <tr>
+                        {Object.keys(queryResults[0]).map((key, idx) => (
+                          <th key={idx} className="px-4 py-3 text-left font-semibold text-slate-600 whitespace-nowrap">{key}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {queryResults.slice(0, 100).map((row, rowIdx) => (
+                        <tr key={rowIdx} className="hover:bg-slate-50">
+                          {Object.values(row).map((val, colIdx) => (
+                            <td key={colIdx} className="px-4 py-3 text-slate-700 whitespace-nowrap">{val !== null ? val.toString() : 'NULL'}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {queryResults.length > 100 && (
+                  <p className="text-xs text-slate-500 p-4">Menampilkan 100 dari {queryResults.length} rows</p>
+                )}
+              </div>
+            )}
+
+            {/* Raw Query Editor */}
+            <div className="card p-4 mt-6">
+              <h3 className="font-semibold text-slate-700 mb-3">Custom SELECT Query</h3>
+              <textarea
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                rows="3"
+                placeholder="SELECT * FROM users WHERE id = 1"
+                value={rawQuery}
+                onChange={(e) => setRawQuery(e.target.value)}
+              />
+              <button
+                onClick={handleRawQuery}
+                disabled={rawLoading}
+                className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition touch-btn"
+              >
+                {rawLoading ? 'Executing...' : 'Run Custom Query'}
+              </button>
+              {rawQueryResult && (
+                <div className={`mt-3 text-sm ${rawQueryResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                  {rawQueryResult.success ? `✓ ${rawQueryResult.data.length} rows returned` : `✗ Error: ${rawQueryResult.error}`}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 🌟 KEUANGAN 🌟 */}
         {page === 'finance' && (
           <div>
