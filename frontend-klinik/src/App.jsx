@@ -40,10 +40,17 @@ const formatTanggalPendek = (dateStr) => {
 // 🌟 TOAST COMPONENT 🌟
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => { 
-    const t = setTimeout(() => onClose(), 2500); 
+    const t = setTimeout(() => {
+      onClose();
+    }, 3000); // 3 detik
     return () => clearTimeout(t); 
   }, [onClose]);
-  return <div className={`toast toast-${type}`}>{message}</div>;
+  
+  return (
+    <div className={`toast toast-${type}`} style={{ animation: 'fadeInOut 3s ease-in-out' }}>
+      {message}
+    </div>
+  );
 };
 
 // 🌟 PAGINATION COMPONENT 🌟
