@@ -102,18 +102,25 @@ const paginate = (req, res, next) => {
 // ============================================
 
 app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
+  const { email, username, password } = req.body;
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   
-  db.query(`SELECT * FROM users WHERE email = ? AND password_hash = ?`, [email, password], (err, results) => {
+  // Login bisa menggunakan email ATAU username (nama_lengkap)
+  const loginIdentifier = email || username;
+  
+  if (!loginIdentifier) {
+    return res.status(400).json({ success: false, message: 'Email atau Username harus diisi!' });
+  }
+  
+  db.query(`SELECT * FROM users WHERE (email = ? OR nama_lengkap = ?) AND password_hash = ?`, [loginIdentifier, loginIdentifier, password], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     if (results.length === 0) {
       db.query(
         `INSERT INTO audit_logs (user_name, action_type, target_table, description, ip_address) VALUES (?, ?, ?, ?, ?)`,
-        [email, 'login', 'users', `Login gagal: ${email}`, ip]
+        [loginIdentifier, 'login', 'users', `Login gagal: ${loginIdentifier}`, ip]
       );
-      return res.status(401).json({ success: false, message: 'Email/Password salah!' });
+      return res.status(401).json({ success: false, message: 'Email/Username atau Password salah!' });
     }
     
     const user = results[0];
@@ -922,6 +929,48 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Backend jalan di port ${PORT}`);
   console.log(`📊 Cache aktif dengan TTL bervariasi`);
   console.log(`🔒 CORS enabled untuk localhost & IP lokal`);
+});
+
+// ============================================
+// 🔧 DATABASE RAW QUERY (ADMIN ONLY)
+// ============================================
+
+app.post('/api/db-raw-query', (req, res) => {
+  const adminRole = req.headers['x-user-role'];
+  const { query } = req.body;
+  
+  // Hanya admin yang bisa akses
+  if (adminRole !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang bisa mengakses raw query!' });
+  }
+  
+  // Validasi: hanya SELECT query yang diperbolehkan (keamanan)
+  const trimmedQuery = query.trim().toUpperCase();
+  if (!trimmedQuery.startsWith('SELECT')) {
+    return res.status(400).json({ 
+      error: 'Hanya query SELECT yang diperbolehkan untuk keamanan database!' 
+    });
+  }
+  
+  // Blokir query berbahaya
+  const dangerousKeywords = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE', 'INSERT', 'UPDATE', 'REPLACE'];
+  for (const keyword of dangerousKeywords) {
+    if (trimmedQuery.includes(keyword)) {
+      return res.status(400).json({ 
+        error: `Query mengandung kata kunci berbahaya: ${keyword}` 
+      });
+    }
+  }
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      logAudit(req, 'error', 'database', null, `Query error: ${err.message}`);
+      return res.status(500).json({ error: err.message });
+    }
+    
+    logAudit(req, 'read', 'database', null, `Raw query executed: ${query.substring(0, 100)}...`);
+    res.json({ success: true, data: results });
+  });
 });
 
 // 🌟 CACHE MONITORING 🌟

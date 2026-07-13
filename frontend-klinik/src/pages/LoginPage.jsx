@@ -6,7 +6,7 @@ import { useLoading } from '../hooks/useForm';
  */
 export default function LoginPage({ onLogin }) {
   const [formData, setFormData] = useState({
-    email: '',
+    identifier: '', // Bisa email atau username
     password: ''
   });
   const [error, setError] = useState('');
@@ -27,7 +27,13 @@ export default function LoginPage({ onLogin }) {
     setError('');
 
     try {
-      const result = await onLogin(formData.email, formData.password);
+      // Cek apakah input adalah email atau username
+      const isEmail = formData.identifier.includes('@');
+      const loginData = isEmail 
+        ? { email: formData.identifier, password: formData.password }
+        : { username: formData.identifier, password: formData.password };
+      
+      const result = await onLogin(loginData);
       if (!result.success) {
         setError(result.message || 'Login gagal');
       }
@@ -56,18 +62,18 @@ export default function LoginPage({ onLogin }) {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+              <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
+                Email atau Username
               </label>
               <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
+                type="text"
+                id="identifier"
+                name="identifier"
+                value={formData.identifier}
                 onChange={handleChange}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="nama@email.com"
+                placeholder="nama@email.com atau username"
                 required
               />
             </div>
@@ -112,7 +118,7 @@ export default function LoginPage({ onLogin }) {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center">
               <strong>Demo Account:</strong><br/>
-              Email: admin@klinik.com<br/>
+              Email: admin@klinik.com atau Username: admin<br/>
               Password: Admin123!
             </p>
           </div>
