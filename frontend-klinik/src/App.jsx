@@ -40,10 +40,17 @@ const formatTanggalPendek = (dateStr) => {
 // 🌟 TOAST COMPONENT 🌟
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => { 
-    const t = setTimeout(() => onClose(), 2500); 
+    const t = setTimeout(() => {
+      onClose();
+    }, 2700); // 2.7 detik (sisakan 0.3s untuk fade out animation)
     return () => clearTimeout(t); 
   }, [onClose]);
-  return <div className={`toast toast-${type}`}>{message}</div>;
+  
+  return (
+    <div className={`toast toast-${type}`}>
+      {message}
+    </div>
+  );
 };
 
 // 🌟 PAGINATION COMPONENT 🌟
@@ -132,7 +139,7 @@ export default function App() {
   const showToast = (message, type = 'info') => setToast({ message, type });
 
   // 🌟 FORM STATES 🌟
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({ identifier: '', password: '' });
   const [patientForm, setPatientForm] = useState({ nama: '', nik: '', kota_lahir: '', tgl_lahir: '', jk: 'L', alamat: '', telp: '', gol_darah: '-', alergi: '', kontak_nama: '', kontak_telp: '' });
   const [userForm, setUserForm] = useState({ nama: '', email: '', password: '', role: 'dokter' });
   const [medForm, setMedForm] = useState({ nama: '', kategori: '', stok: 0, harga_beli: 0, harga_jual: 0, expired: '' });
@@ -371,8 +378,8 @@ export default function App() {
   };
 
   const getSortIcon = (column, sortState) => {
-    if (sortState.column !== column) return '↕️';
-    return sortState.order === 'ASC' ? '↑' : '↓';
+    // Tidak menampilkan icon, hanya sorting functionality
+    return '';
   };
 
   const robustSort = (arr, column, order, valueExtractor = null) => {
@@ -651,7 +658,8 @@ export default function App() {
     { id: 'finance', icon: '💰', label: 'Keuangan', shortLabel: 'Keuangan' },
     ...(currentUser?.role === 'admin' ? [
       { id: 'users', icon: '⚙️', label: 'Manage User', shortLabel: 'User' },
-      { id: 'audit', icon: '📝', label: 'Audit Log', shortLabel: 'Log' }
+      { id: 'audit', icon: '📝', label: 'Audit Log', shortLabel: 'Log' },
+      { id: 'db_raw', icon: '🗄️', label: 'Database Raw Query', shortLabel: 'DB Raw' }
     ] : [])
   ];
 
@@ -667,7 +675,13 @@ export default function App() {
           <form onSubmit={async (e) => {
             e.preventDefault();
             try { 
-              const res = await axios.post(`${API_URL}/login`, loginData); 
+              // Cek apakah input adalah email atau username
+              const isEmail = loginData.identifier.includes('@');
+              const payload = isEmail 
+                ? { email: loginData.identifier, password: loginData.password }
+                : { username: loginData.identifier, password: loginData.password };
+              
+              const res = await axios.post(`${API_URL}/login`, payload); 
               if (res.data.success) { 
                 setIsLoggedIn(true); 
                 setCurrentUser(res.data.user);
@@ -677,10 +691,10 @@ export default function App() {
                 showToast('Login berhasil!', 'success'); 
               } 
             } catch { 
-              showToast('Email/Password salah!', 'error'); 
+              showToast('Email/Username atau Password salah!', 'error'); 
             }
           }} className="space-y-4">
-            <input type="email" placeholder="Email" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={loginData.email} onChange={e => setLoginData({...loginData, email: e.target.value})} required />
+            <input type="text" placeholder="Email atau Username" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={loginData.identifier} onChange={e => setLoginData({...loginData, identifier: e.target.value})} required />
             <input type="password" placeholder="Password" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} required />
             <button type="submit" className="btn-primary w-full">Masuk</button>
           </form>
