@@ -102,18 +102,18 @@ const paginate = (req, res, next) => {
 // ============================================
 
 app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   
-  db.query(`SELECT * FROM users WHERE email = ? AND password_hash = ?`, [email, password], (err, results) => {
+  db.query(`SELECT * FROM users WHERE username = ? AND password_hash = ?`, [username, password], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     
     if (results.length === 0) {
       db.query(
         `INSERT INTO audit_logs (user_name, action_type, target_table, description, ip_address) VALUES (?, ?, ?, ?, ?)`,
-        [email, 'login', 'users', `Login gagal: ${email}`, ip]
+        [username, 'login', 'users', `Login gagal: ${username}`, ip]
       );
-      return res.status(401).json({ success: false, message: 'Email/Password salah!' });
+      return res.status(401).json({ success: false, message: 'Username/Password salah!' });
     }
     
     const user = results[0];
@@ -198,7 +198,7 @@ app.get('/api/users', (req, res) => {
   const cached = getCache('users');
   if (cached) return res.json(cached);
   
-  db.query('SELECT id, nama_lengkap, email, role FROM users ORDER BY id', (e, r) => {
+  db.query('SELECT id, nama_lengkap, username, role FROM users ORDER BY id', (e, r) => {
     if (e) return res.status(500).json({ error: e.message });
     setCache('users', r, 120);
     res.json(r);
@@ -206,22 +206,22 @@ app.get('/api/users', (req, res) => {
 });
 
 app.post('/api/users', (req, res) => {
-  const { nama_lengkap, email, password, role } = req.body;
+  const { nama_lengkap, username, password, role } = req.body;
   
-  if (!nama_lengkap || !email || !password || !role) {
+  if (!nama_lengkap || !username || !password || !role) {
     return res.status(400).json({ error: 'Semua field wajib diisi!' });
   }
   
-  db.query(`SELECT id FROM users WHERE email = ?`, [email], (e, existing) => {
+  db.query(`SELECT id FROM users WHERE username = ?`, [username], (e, existing) => {
     if (e) return res.status(500).json({ error: e.message });
     
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'Email sudah terdaftar!' });
+      return res.status(400).json({ error: 'Username sudah terdaftar!' });
     }
     
     db.query(
-      `INSERT INTO users (nama_lengkap, email, password_hash, role) VALUES (?, ?, ?, ?)`,
-      [nama_lengkap, email, password, role],
+      `INSERT INTO users (nama_lengkap, username, password_hash, role) VALUES (?, ?, ?, ?)`,
+      [nama_lengkap, username, password, role],
       (e, result) => {
         if (e) return res.status(500).json({ error: e.message });
         invalidateCache('users');
@@ -233,11 +233,11 @@ app.post('/api/users', (req, res) => {
 });
 
 app.put('/api/users/:id', (req, res) => {
-  const { nama_lengkap, email, role } = req.body;
+  const { nama_lengkap, username, role } = req.body;
   
   db.query(
-    `UPDATE users SET nama_lengkap=?, email=?, role=? WHERE id=?`,
-    [nama_lengkap, email, role, req.params.id],
+    `UPDATE users SET nama_lengkap=?, username=?, role=? WHERE id=?`,
+    [nama_lengkap, username, role, req.params.id],
     (e) => {
       if (e) return res.status(500).json({ error: e.message });
       invalidateCache('users');
