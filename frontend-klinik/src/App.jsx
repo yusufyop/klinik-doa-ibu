@@ -1791,12 +1791,12 @@ export default function App() {
       {/* 🌟 MODAL DETAIL 🌟 */}
       {showModal === 'detail' && editingData && (
         <div className="modal-overlay" onClick={() => setShowModal(null)}>
-          <div className="card w-full max-w-3xl mx-4 overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
+          <div className="card w-full max-w-3xl mx-4" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center flex-shrink-0 bg-white sticky top-0 z-10">
               <h2 className="text-xl font-bold text-slate-800">📋 Detail Rekam Medis</h2>
               <button onClick={() => setShowModal(null)} className="text-2xl text-slate-400 touch-btn">&times;</button>
             </div>
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
               <div className="flex justify-between items-center pb-4 border-b flex-wrap gap-2">
                 <div>
                   <p className="text-sm text-slate-500">Tanggal Kunjungan</p>

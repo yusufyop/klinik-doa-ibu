@@ -93,6 +93,27 @@ body {
   padding: 16px;
 }
 
+/* Modal content dengan max height dan scroll */
+.modal-content-scrollable {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-content-scrollable .modal-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.modal-content-scrollable .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
