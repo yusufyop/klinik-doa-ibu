@@ -53,6 +53,14 @@ const SettingsPage = ({ onBack }) => {
     }
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -196,46 +204,62 @@ const SettingsPage = ({ onBack }) => {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                URL Logo Klinik
+                Upload Logo Klinik
               </label>
-              <input
-                type="url"
-                name="logo_url"
-                value={formData.logo_url}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="https://example.com/logo.png"
-              />
-              <p className="text-xs text-slate-500 mt-1">URL logo untuk ditampilkan di aplikasi</p>
-              
-              {formData.logo_url && (
-                <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 mb-2">Preview:</p>
-                  <img src={formData.logo_url} alt="Logo preview" className="h-16 object-contain" onError={(e) => e.target.style.display = 'none'} />
-                </div>
-              )}
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-500 transition cursor-pointer">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                  id="logo-upload"
+                />
+                <label htmlFor="logo-upload" className="cursor-pointer">
+                  {logoPreview ? (
+                    <div className="flex flex-col items-center">
+                      <img src={logoPreview} alt="Logo preview" className="h-20 object-contain mb-2" />
+                      <p className="text-sm text-blue-600">Klik untuk ganti logo</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <span className="text-3xl mb-2">📷</span>
+                      <p className="text-sm text-slate-600">Klik untuk upload logo</p>
+                      <p className="text-xs text-slate-500 mt-1">Format: JPG, PNG, GIF, WEBP (Max 5MB)</p>
+                    </div>
+                  )}
+                </label>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                URL Favicon
+                Upload Favicon
               </label>
-              <input
-                type="url"
-                name="favicon_url"
-                value={formData.favicon_url}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="https://example.com/favicon.ico"
-              />
-              <p className="text-xs text-slate-500 mt-1">Icon kecil yang muncul di tab browser (.ico atau .png)</p>
-              
-              {formData.favicon_url && (
-                <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 mb-2">Preview:</p>
-                  <img src={formData.favicon_url} alt="Favicon preview" className="h-8 object-contain" onError={(e) => e.target.style.display = 'none'} />
-                </div>
-              )}
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-500 transition cursor-pointer">
+                <input
+                  ref={faviconInputRef}
+                  type="file"
+                  accept="image/*,.ico"
+                  onChange={handleFaviconChange}
+                  className="hidden"
+                  id="favicon-upload"
+                />
+                <label htmlFor="favicon-upload" className="cursor-pointer">
+                  {faviconPreview ? (
+                    <div className="flex flex-col items-center">
+                      <img src={faviconPreview} alt="Favicon preview" className="h-8 object-contain mb-2" />
+                      <p className="text-sm text-blue-600">Klik untuk ganti favicon</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <span className="text-3xl mb-2">🖼️</span>
+                      <p className="text-sm text-slate-600">Klik untuk upload favicon</p>
+                      <p className="text-xs text-slate-500 mt-1">Format: ICO, PNG (32x32 atau 64x64 px)</p>
+                    </div>
+                  )}
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -252,13 +276,21 @@ const SettingsPage = ({ onBack }) => {
           
           <button
             type="button"
-            onClick={() => setFormData({
-              clinic_name: 'Klinik Sehat',
-              clinic_address: '',
-              browser_title: 'Sistem Informasi Klinik',
-              logo_url: '',
-              favicon_url: ''
-            })}
+            onClick={() => {
+              setFormData({
+                clinic_name: 'Klinik Sehat',
+                clinic_address: '',
+                browser_title: 'Sistem Informasi Klinik',
+                logo_url: '',
+                favicon_url: ''
+              });
+              setLogoPreview(null);
+              setFaviconPreview(null);
+              setLogoFile(null);
+              setFaviconFile(null);
+              if (logoInputRef.current) logoInputRef.current.value = '';
+              if (faviconInputRef.current) faviconInputRef.current.value = '';
+            }}
             className="px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition"
           >
             🔄 Reset Default
@@ -272,7 +304,7 @@ const SettingsPage = ({ onBack }) => {
           <span>💡</span> Tips
         </h3>
         <ul className="text-sm text-slate-700 space-y-2">
-          <li>• Logo dan favicon bisa menggunakan URL dari gambar yang sudah diupload di internet</li>
+          <li>• Upload logo dan favicon langsung dari komputer Anda</li>
           <li>• Favicon disarankan format .ico atau .png dengan ukuran 32x32 atau 64x64 pixel</li>
           <li>• Perubahan judul browser akan langsung terlihat setelah disimpan</li>
           <li>• Untuk favicon, mungkin perlu refresh browser (Ctrl+F5) agar terlihat perubahan</li>

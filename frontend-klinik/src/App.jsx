@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import SettingsPage from './pages/SettingsPage';
+import useSettings from './hooks/useSettings';
 
 // 🌟 AUTO DETECT API URL 🌟
 const getApiUrl = () => {
@@ -107,6 +108,8 @@ const Pagination = ({ currentPage, totalPages, totalItems, onPageChange }) => {
 };
 
 export default function App() {
+  const { settings } = useSettings();
+  
   // 🌟 STATE MANAGEMENT 🌟
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('isLoggedIn') === 'true');
   const [currentUser, setCurrentUser] = useState(() => {
@@ -663,8 +666,12 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="card p-8 w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">DI</div>
-            <h1 className="text-2xl font-bold text-slate-800">Klinik Pratama Doa Ibu</h1>
+            {settings?.logo_url ? (
+              <img src={`${API_URL.replace('/api', '')}${settings.logo_url}`} alt="Logo Klinik" className="w-16 h-16 mx-auto mb-4 object-contain" />
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">DI</div>
+            )}
+            <h1 className="text-2xl font-bold text-slate-800">{settings?.clinic_name || 'Klinik Pratama Doa Ibu'}</h1>
           </div>
           <form onSubmit={async (e) => {
             e.preventDefault();
@@ -775,7 +782,7 @@ export default function App() {
         {page === 'dashboard' && (
           <div>
             <div className="flex justify-between items-center mb-6 mobile-header-action">
-              <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-slate-800">{settings?.clinic_name || 'Dashboard'} - Dashboard</h1>
               <div className="text-right">
                 <p className="text-2xl md:text-3xl font-bold text-blue-600">{formatTimeWIB(currentTime)} WIB</p>
                 <p className="text-xs md:text-sm text-slate-500">{formatDateWIB(currentTime)}</p>
