@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import SettingsPage from './pages/SettingsPage';
 
 // 🌟 AUTO DETECT API URL 🌟
 const getApiUrl = () => {
@@ -649,6 +650,7 @@ export default function App() {
     { id: 'all_records', icon: '📋', label: 'List Rekam Medis', shortLabel: 'RM' },
     { id: 'pharmacy', icon: '💊', label: 'Obat', shortLabel: 'Obat' },
     { id: 'finance', icon: '💰', label: 'Keuangan', shortLabel: 'Keuangan' },
+    { id: 'settings', icon: '🎨', label: 'Custom Website', shortLabel: 'Website' },
     ...(currentUser?.role === 'admin' ? [
       { id: 'users', icon: '⚙️', label: 'Manage User', shortLabel: 'User' },
       { id: 'audit', icon: '📝', label: 'Audit Log', shortLabel: 'Log' }
@@ -912,6 +914,11 @@ export default function App() {
               onPageChange={(newPage) => setAuditPagination(prev => ({ ...prev, page: newPage }))}
             />
           </div>
+        )}
+
+        {/* 🌟 CUSTOM WEBSITE SETTINGS 🌟 */}
+        {page === 'settings' && (
+          <SettingsPage onBack={() => setPage('dashboard')} />
         )}
 
         {/* 🌟 KEUANGAN 🌟 */}
