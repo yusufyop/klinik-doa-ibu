@@ -182,6 +182,8 @@ export default function App() {
   const [rawQuery, setRawQuery] = useState('SELECT * FROM ');
   const [crudOperation, setCrudOperation] = useState('insert');
   const [crudData, setCrudData] = useState({});
+  const [crudWhere, setCrudWhere] = useState('');
+  const [crudMessage, setCrudMessage] = useState(null);
 
   // 🌟 PAGINATION STATES 🌟
   const [patientsPagination, setPatientsPagination] = useState({ page: 1, limit: 20, total: 0 });
@@ -404,6 +406,48 @@ export default function App() {
     } catch (error) {
       console.error('Error executing query:', error);
       showToast(error.response?.data?.error || 'Gagal mengeksekusi query', 'error');
+    } finally {
+      setCrudLoading(false);
+    }
+  };
+
+  const handleCrudOperation = async () => {
+    if (!selectedTable) {
+      showToast('Pilih tabel terlebih dahulu', 'warning');
+      return;
+    }
+    setCrudLoading(true);
+    try {
+      let payload = { table: selectedTable, operation: crudOperation };
+      if (crudOperation === 'insert' || crudOperation === 'update') {
+        try {
+          payload.data = typeof crudData === 'string' ? JSON.parse(crudData) : crudData;
+        } catch (e) {
+          showToast('Format data JSON tidak valid', 'error');
+          setCrudLoading(false);
+          return;
+        }
+      }
+      if (crudOperation === 'update' || crudOperation === 'delete' || crudOperation === 'select') {
+        try {
+          payload.where = typeof crudWhere === 'string' ? JSON.parse(crudWhere) : crudWhere;
+        } catch (e) {
+          showToast('Format WHERE JSON tidak valid', 'error');
+          setCrudLoading(false);
+          return;
+        }
+      }
+      const res = await axios.post(`${API_URL}/db/crud`, payload);
+      setQueryResults(res.data.results || []);
+      setCrudMessage({ success: true, text: `Operasi ${crudOperation.toUpperCase()} berhasil!` });
+      showToast(`Operasi ${crudOperation.toUpperCase()} berhasil`, 'success');
+      if (crudOperation === 'select') {
+        fetchTableData(selectedTable);
+      }
+    } catch (error) {
+      console.error('Error CRUD operation:', error);
+      setCrudMessage({ success: false, text: error.response?.data?.error || 'Gagal melakukan operasi CRUD' });
+      showToast(error.response?.data?.error || 'Gagal melakukan operasi CRUD', 'error');
     } finally {
       setCrudLoading(false);
     }
