@@ -78,7 +78,13 @@ router.get('/', async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Get finance error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal memuat data keuangan',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -104,7 +110,13 @@ router.post('/manual', transactionValidation.create, async (req, res) => {
     res.json({ success: true, message: 'Transaksi berhasil ditambahkan!' });
   } catch (error) {
     logger.error('Create transaction error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menambahkan transaksi',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -127,7 +139,13 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true, message: 'Transaksi dihapus!' });
   } catch (error) {
     logger.error('Delete transaction error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menghapus transaksi',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 

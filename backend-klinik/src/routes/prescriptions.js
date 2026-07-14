@@ -27,7 +27,13 @@ router.get('/', async (req, res) => {
     res.json(results);
   } catch (error) {
     logger.error('Get prescriptions error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal memuat data resep',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -86,7 +92,13 @@ router.post('/', async (req, res) => {
   } catch (error) {
     await connection.rollback();
     logger.error('Create prescription error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menambahkan resep',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   } finally {
     connection.release();
   }
@@ -135,7 +147,13 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     await connection.rollback();
     logger.error('Delete prescription error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menghapus resep',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   } finally {
     connection.release();
   }

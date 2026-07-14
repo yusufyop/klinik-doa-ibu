@@ -38,9 +38,12 @@ router.post('/', loginLimiter, async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Login error:', error);
-    res.status(500).json({ 
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
       success: false, 
-      message: 'Terjadi kesalahan pada server' 
+      message: 'Terjadi kesalahan pada server',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
     });
   }
 });

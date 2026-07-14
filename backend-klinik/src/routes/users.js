@@ -32,7 +32,13 @@ router.get('/', async (req, res) => {
     res.json(results);
   } catch (error) {
     logger.error('Get users error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal memuat data user',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -66,7 +72,13 @@ router.post('/', userValidation.create, async (req, res) => {
     res.json({ success: true, message: 'User berhasil dibuat!' });
   } catch (error) {
     logger.error('Create user error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal membuat user',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -93,7 +105,13 @@ router.put('/:id', userValidation.update, async (req, res) => {
     res.json({ success: true, message: 'User diupdate!' });
   } catch (error) {
     logger.error('Update user error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal mengupdate user',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -119,7 +137,13 @@ router.put('/:id/password', userValidation.passwordReset, async (req, res) => {
     res.json({ success: true, message: 'Password berhasil direset!' });
   } catch (error) {
     logger.error('Reset password error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal mereset password',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -142,7 +166,13 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true, message: 'User dihapus!' });
   } catch (error) {
     logger.error('Delete user error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menghapus user',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 

@@ -58,7 +58,13 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     logger.error('Get patients error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal memuat data pasien',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -93,7 +99,13 @@ router.post('/', patientValidation.create, async (req, res) => {
     res.json({ success: true, message: 'Pasien berhasil ditambahkan!', no_rm });
   } catch (error) {
     logger.error('Create patient error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menambahkan pasien',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -124,7 +136,13 @@ router.put('/:id', patientValidation.update, async (req, res) => {
     res.json({ success: true, message: 'Data pasien berhasil diupdate!' });
   } catch (error) {
     logger.error('Update patient error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal mengupdate data pasien',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 
@@ -144,7 +162,13 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true, message: 'Pasien dihapus!' });
   } catch (error) {
     logger.error('Delete patient error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal menghapus pasien',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 

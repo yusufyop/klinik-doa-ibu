@@ -61,7 +61,13 @@ router.get('/stats', async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Get dashboard stats error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+      success: false,
+      message: 'Gagal memuat statistik dashboard',
+      error: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 });
 

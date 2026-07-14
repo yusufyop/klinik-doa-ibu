@@ -103,13 +103,31 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   logger.error('Unhandled error:', err);
   
-  res.status(err.status || 500).json({
-    success: false,
-    message: config.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message,
-    ...(config.NODE_ENV !== 'production' && { stack: err.stack })
-  });
+  // Pastikan header JSON belum dikirim
+  if (!res.headersSent) {
+    const statusCode = err.statusCode || err.status || 500;
+    const message = err.message || 'Terjadi kesalahan pada server';
+    
+    // Kirim detail error hanya jika bukan production
+    const responsePayload = {
+      success: false,
+      message: config.NODE_ENV === 'production' 
+        ? 'Internal server error' 
+        : message,
+    };
+
+    // Tambahkan detail teknis untuk debugging di development
+    if (config.NODE_ENV !== 'production') {
+      responsePayload.stack = err.stack;
+      responsePayload.sqlMessage = err.sqlMessage;
+      responsePayload.sqlCode = err.sqlCode;
+    }
+
+    return res.status(statusCode).json(responsePayload);
+  }
+
+  // Fallback jika headers sudah terkirim
+  logger.error('Headers already sent, cannot send error response');
 });
 
 // ============================================
