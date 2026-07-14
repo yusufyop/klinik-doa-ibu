@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSettings from '../hooks/useSettings';
 
 const SettingsPage = ({ onBack }) => {
-  const { settings, loading, error, updateSettings } = useSettings();
+  const { settings, loading, error, updateSettings, fetchSettings } = useSettings();
   const [formData, setFormData] = useState({
     clinic_name: '',
     clinic_address: '',
@@ -10,9 +10,15 @@ const SettingsPage = ({ onBack }) => {
     logo_url: '',
     favicon_url: ''
   });
+  const [logoFile, setLogoFile] = useState(null);
+  const [faviconFile, setFaviconFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [faviconPreview, setFaviconPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-
+  const logoInputRef = useRef(null);
+  const faviconInputRef = useRef(null);
+  
   useEffect(() => {
     if (settings) {
       setFormData({
@@ -22,12 +28,29 @@ const SettingsPage = ({ onBack }) => {
         logo_url: settings.logo_url || '',
         favicon_url: settings.favicon_url || ''
       });
+      if (settings.logo_url) setLogoPreview(settings.logo_url);
+      if (settings.favicon_url) setFaviconPreview(settings.favicon_url);
     }
   }, [settings]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setLogoPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFaviconChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFaviconFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setFaviconPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -35,19 +58,39 @@ const SettingsPage = ({ onBack }) => {
     setSaving(true);
     setMessage(null);
 
-    const result = await updateSettings(formData);
+    const submitData = new FormData();
+    submitData.append('clinic_name', formData.clinic_name);
+    submitData.append('clinic_address', formData.clinic_address);
+    submitData.append('browser_title', formData.browser_title);
+    
+    if (logoFile) {
+      submitData.append('logo', logoFile);
+    } else if (formData.logo_url) {
+      submitData.append('existing_logo', formData.logo_url);
+    }
+    
+    if (faviconFile) {
+      submitData.append('favicon', faviconFile);
+    } else if (formData.favicon_url) {
+      submitData.append('existing_favicon', formData.favicon_url);
+    }
+
+    const result = await updateSettings(submitData, true);
     
     if (result.success) {
       setMessage({ type: 'success', text: 'Pengaturan berhasil disimpan!' });
+      setLogoFile(null);
+      setFaviconFile(null);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+      if (faviconInputRef.current) faviconInputRef.current.value = '';
     } else {
       setMessage({ type: 'error', text: result.message || 'Gagal menyimpan pengaturan' });
     }
     
     setSaving(false);
-    
-    // Hide message after 3 seconds
     setTimeout(() => setMessage(null), 3000);
   };
+
 
   if (loading) {
     return (
