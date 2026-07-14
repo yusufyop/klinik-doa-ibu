@@ -172,6 +172,15 @@ export default function App() {
   const [recordsSort, setRecordsSort] = useState({ column: 'tanggal_kunjungan', order: 'DESC' });
   const [recordsSearch, setRecordsSearch] = useState('');
 
+  // 🌟 DATABASE RAW QUERY STATES 🌟
+  const [dbTables, setDbTables] = useState([]);
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [tableStructure, setTableStructure] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [queryResults, setQueryResults] = useState([]);
+  const [crudLoading, setCrudLoading] = useState(false);
+  const [rawQuery, setRawQuery] = useState('SELECT * FROM ');
+
   // 🌟 PAGINATION STATES 🌟
   const [patientsPagination, setPatientsPagination] = useState({ page: 1, limit: 20, total: 0 });
   const [medicinesPagination, setMedicinesPagination] = useState({ page: 1, limit: 20, total: 0 });
@@ -228,6 +237,13 @@ export default function App() {
       fetchAuditLogs();
     }
   }, [auditPagination.page, auditFilter, page, isLoggedIn]);
+
+  // 🌟 FETCH DB TABLES EFFECT 🌟
+  useEffect(() => {
+    if (page === 'db_raw' && currentUser?.role === 'admin' && isLoggedIn) {
+      fetchDbTables();
+    }
+  }, [page, currentUser, isLoggedIn]);
 
   const axiosWithUser = () => ({
     headers: {
@@ -339,6 +355,55 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error);
+    }
+  };
+
+  // 🌟 DATABASE RAW QUERY FUNCTIONS 🌟
+  const fetchDbTables = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/db/tables`);
+      setDbTables(res.data || []);
+    } catch (error) {
+      console.error('Error fetching database tables:', error);
+      showToast('Gagal memuat daftar tabel', 'error');
+    }
+  };
+
+  const fetchTableData = async (tableName) => {
+    try {
+      const res = await axios.get(`${API_URL}/db/table-data?table=${tableName}`);
+      setTableData(res.data || []);
+    } catch (error) {
+      console.error('Error fetching table data:', error);
+      showToast('Gagal memuat data tabel', 'error');
+    }
+  };
+
+  const fetchTableStructure = async (tableName) => {
+    try {
+      const res = await axios.get(`${API_URL}/db/table-structure?table=${tableName}`);
+      setTableStructure(res.data || []);
+    } catch (error) {
+      console.error('Error fetching table structure:', error);
+      showToast('Gagal memuat struktur tabel', 'error');
+    }
+  };
+
+  const executeRawQuery = async () => {
+    if (!rawQuery.trim()) {
+      showToast('Masukkan query SQL', 'warning');
+      return;
+    }
+    setCrudLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/db/execute-query`, { query: rawQuery });
+      setQueryResults(res.data.results || []);
+      showToast('Query berhasil dieksekusi', 'success');
+    } catch (error) {
+      console.error('Error executing query:', error);
+      showToast(error.response?.data?.error || 'Gagal mengeksekusi query', 'error');
+    } finally {
+      setCrudLoading(false);
     }
   };
 
