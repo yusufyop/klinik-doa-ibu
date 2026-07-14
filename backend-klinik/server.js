@@ -913,6 +913,65 @@ app.delete('/api/medicines/:id', (req, res) => {
 });
 
 // ============================================
+// ⚙️ SETTINGS
+// ============================================
+
+app.get('/api/settings', (req, res) => {
+  db.query('SELECT * FROM settings LIMIT 1', (err, results) => {
+    if (err) return res.status(500).json({ message: 'Gagal mengambil pengaturan', error: err.message });
+    
+    if (results.length === 0) {
+      // Return default jika belum ada data
+      return res.json({
+        clinic_name: 'Klinik Sehat',
+        clinic_address: '',
+        browser_title: 'Sistem Informasi Klinik',
+        logo_url: null,
+        favicon_url: null
+      });
+    }
+    res.json(results[0]);
+  });
+});
+
+app.put('/api/settings', (req, res) => {
+  const { clinic_name, clinic_address, browser_title, logo_url, favicon_url } = req.body;
+
+  db.query('SELECT id FROM settings LIMIT 1', (err, existing) => {
+    if (err) return res.status(500).json({ message: 'Gagal memperbarui pengaturan', error: err.message });
+
+    if (existing.length > 0) {
+      // Update data yang ada
+      db.query(
+        `UPDATE settings SET 
+        clinic_name = ?, 
+        clinic_address = ?, 
+        browser_title = ?, 
+        logo_url = ?, 
+        favicon_url = ? 
+        WHERE id = ?`,
+        [clinic_name, clinic_address, browser_title, logo_url, favicon_url, existing[0].id],
+        (err) => {
+          if (err) return res.status(500).json({ message: 'Gagal memperbarui pengaturan', error: err.message });
+          res.json({ message: 'Pengaturan berhasil diperbarui' });
+        }
+      );
+    } else {
+      // Insert data baru jika belum ada
+      db.query(
+        `INSERT INTO settings (clinic_name, clinic_address, browser_title, logo_url, favicon_url) 
+        VALUES (?, ?, ?, ?, ?)`,
+        [clinic_name, clinic_address, browser_title, logo_url, favicon_url],
+        (err) => {
+          if (err) return res.status(500).json({ message: 'Gagal memperbarui pengaturan', error: err.message });
+          res.json({ message: 'Pengaturan berhasil diperbarui' });
+        }
+      );
+    }
+  });
+});
+
+// ============================================
 // 🚀 START SERVER
 // ============================================
 
