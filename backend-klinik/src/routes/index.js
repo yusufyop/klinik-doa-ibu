@@ -13,6 +13,7 @@ const examinationRoutes = require('./examination');
 const transactionsRoutes = require('./transactions');
 const medicinesRoutes = require('./medicines');
 const cacheRoutes = require('./cache');
+const settingsRoutes = require('./settings');
 
 const router = express.Router();
 
@@ -34,5 +35,6 @@ router.use(examinationRoutes);
 router.use(transactionsRoutes);
 router.use(medicinesRoutes);
 router.use(cacheRoutes);
+router.use('/api/settings', settingsRoutes);
 
 module.exports = router;
