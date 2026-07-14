@@ -132,9 +132,9 @@ export default function App() {
   const showToast = (message, type = 'info') => setToast({ message, type });
 
   // 🌟 FORM STATES 🌟
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({ username: '', password: '' });
   const [patientForm, setPatientForm] = useState({ nama: '', nik: '', kota_lahir: '', tgl_lahir: '', jk: 'L', alamat: '', telp: '', gol_darah: '-', alergi: '', kontak_nama: '', kontak_telp: '' });
-  const [userForm, setUserForm] = useState({ nama: '', email: '', password: '', role: 'dokter' });
+  const [userForm, setUserForm] = useState({ nama: '', username: '', password: '', role: 'dokter' });
   const [medForm, setMedForm] = useState({ nama: '', kategori: '', stok: 0, harga_beli: 0, harga_jual: 0, expired: '' });
   const [examForm, setExamForm] = useState({ dokter_id: 1, keluhan: '', tensi: '', suhu: '', nadi: '', napas: '', berat: '', tinggi: '', catatan_fisik: '', diagnosa: '', catatan: '', status: 'mengantri' });
   const [paymentForm, setPaymentForm] = useState({ biaya_konsul: 50000, biaya_obat: 0, metode: 'tunai' });
@@ -563,15 +563,15 @@ export default function App() {
   e.preventDefault(); 
   
   // 🌟 VALIDASI FIELD WAJIB 🌟
-  if (!userForm.nama || !userForm.email || !userForm.role) {
-    showToast('Nama, email, dan role wajib diisi!', 'error');
+  if (!userForm.nama || !userForm.username || !userForm.role) {
+    showToast('Nama, username, dan role wajib diisi!', 'error');
     return;
   }
   
   try { 
     const payload = {
       nama_lengkap: userForm.nama,
-      email: userForm.email,
+      username: userForm.username,
       role: userForm.role
     };
     
@@ -588,7 +588,7 @@ export default function App() {
     
     showToast('User disimpan!', 'success'); 
     setShowModal(null); 
-    setUserForm({ nama: '', email: '', password: '', role: 'dokter' });
+    setUserForm({ nama: '', username: '', password: '', role: 'dokter' });
     fetchUsers();
   } catch (err) { 
     showToast(err.response?.data?.error || 'Gagal simpan user', 'error'); 
@@ -677,10 +677,10 @@ export default function App() {
                 showToast('Login berhasil!', 'success'); 
               } 
             } catch { 
-              showToast('Email/Password salah!', 'error'); 
+              showToast('Username/Password salah!', 'error'); 
             }
           }} className="space-y-4">
-            <input type="email" placeholder="Email" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={loginData.email} onChange={e => setLoginData({...loginData, email: e.target.value})} required />
+            <input type="text" placeholder="Username" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={loginData.username} onChange={e => setLoginData({...loginData, username: e.target.value})} required />
             <input type="password" placeholder="Password" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} required />
             <button type="submit" className="btn-primary w-full">Masuk</button>
           </form>
@@ -1578,10 +1578,10 @@ export default function App() {
                     users.map(u => (
                       <tr key={u.id} className="hover:bg-slate-50">
                         <td className="px-6 py-4 text-sm font-medium text-slate-800">{u.nama_lengkap}</td>
-                        <td className="px-6 py-4 text-sm text-slate-700">{u.email}</td>
+                        <td className="px-6 py-4 text-sm text-slate-700">{u.username}</td>
                         <td className="px-6 py-4"><span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold capitalize">{u.role}</span></td>
                         <td className="px-6 py-4 flex gap-2 flex-wrap">
-                          <button onClick={() => { setEditingData(u); setUserForm({ nama: u.nama_lengkap, email: u.email, password: '', role: u.role }); setShowModal('user'); }} className="bg-amber-50 text-amber-700 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-amber-100 touch-btn">Edit</button>
+                          <button onClick={() => { setEditingData(u); setUserForm({ nama: u.nama_lengkap, username: u.username, password: '', role: u.role }); setShowModal('user'); }} className="bg-amber-50 text-amber-700 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-amber-100 touch-btn">Edit</button>
                           <button onClick={() => { setEditingData(u); setResetPasswordForm({ password: '', confirmPassword: '' }); setShowModal('resetPassword'); }} className="bg-purple-50 text-purple-700 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-purple-100 touch-btn">Reset</button>
                           <button onClick={() => handleDeleteUser(u.id)} className="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-100 touch-btn">Hapus</button>
                         </td>
@@ -1600,12 +1600,12 @@ export default function App() {
                       <div className="flex justify-between items-start mb-3">
                         <div className="min-w-0 flex-1">
                           <h3 className="font-bold text-slate-800 truncate">{u.nama_lengkap}</h3>
-                          <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                          <p className="text-xs text-slate-500 truncate">@{u.username}</p>
                         </div>
                         <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold capitalize ml-2">{u.role}</span>
                       </div>
                       <div className="flex gap-2 flex-wrap">
-                        <button onClick={() => { setEditingData(u); setUserForm({ nama: u.nama_lengkap, email: u.email, password: '', role: u.role }); setShowModal('user'); }} className="flex-1 bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-semibold touch-btn">✏️ Edit</button>
+                        <button onClick={() => { setEditingData(u); setUserForm({ nama: u.nama_lengkap, username: u.username, password: '', role: u.role }); setShowModal('user'); }} className="flex-1 bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-semibold touch-btn">✏️ Edit</button>
                         <button onClick={() => { setEditingData(u); setResetPasswordForm({ password: '', confirmPassword: '' }); setShowModal('resetPassword'); }} className="flex-1 bg-purple-500 text-white px-3 py-2 rounded-lg text-sm font-semibold touch-btn">🔐 Reset</button>
                         <button onClick={() => handleDeleteUser(u.id)} className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-semibold touch-btn">🗑️</button>
                       </div>
@@ -1928,12 +1928,12 @@ export default function App() {
           />
         </div>
         <div>
-          <label className="text-sm font-semibold text-slate-700 mb-1 block">Email</label>
+          <label className="text-sm font-semibold text-slate-700 mb-1 block">Username</label>
           <input 
-            type="email" 
+            type="text" 
             className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none" 
-            value={userForm.email} 
-            onChange={e => setUserForm({...userForm, email: e.target.value})} 
+            value={userForm.username} 
+            onChange={e => setUserForm({...userForm, username: e.target.value})} 
             required 
           />
         </div>
@@ -1979,7 +1979,7 @@ export default function App() {
               <div className="bg-blue-50 p-4 rounded-xl">
                 <p className="text-sm text-slate-600">User</p>
                 <p className="font-bold text-slate-800">{editingData.nama_lengkap}</p>
-                <p className="text-xs text-slate-500 mt-1">{editingData.email}</p>
+                <p className="text-xs text-slate-500 mt-1">@{editingData.username}</p>
               </div>
               <div>
                 <label className="text-sm font-semibold text-slate-700 mb-1 block">Password Baru</label>
