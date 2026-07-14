@@ -13,7 +13,7 @@ const examinationRoutes = require('./examination');
 const transactionsRoutes = require('./transactions');
 const medicinesRoutes = require('./medicines');
 const cacheRoutes = require('./cache');
-const settingsRoutes = require('./settings');
+const settingsRoutes = require('./settingsRoutes');
 
 const router = express.Router();
 
