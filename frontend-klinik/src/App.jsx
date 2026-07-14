@@ -180,6 +180,7 @@ export default function App() {
   const [queryResults, setQueryResults] = useState([]);
   const [crudLoading, setCrudLoading] = useState(false);
   const [rawQuery, setRawQuery] = useState('SELECT * FROM ');
+  const [crudOperation, setCrudOperation] = useState('insert');
 
   // 🌟 PAGINATION STATES 🌟
   const [patientsPagination, setPatientsPagination] = useState({ page: 1, limit: 20, total: 0 });
