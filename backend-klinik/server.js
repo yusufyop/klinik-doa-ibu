@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 // const cors = require('cors');
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
@@ -20,6 +21,41 @@ app.use(cors({
 app.options('*', cors());
 
 app.use(express.json());
+
+// 🌟 SERVE UPLOADED FILES STATICALLY 🌟
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 🌟 MULTER CONFIG FOR SETTINGS UPLOAD 🌟
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, 'uploads');
+        if (!path.existsSync(uploadDir)) {
+            path.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'settings-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Max 5MB
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|ico|gif|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (extname && mimetype) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Hanya file gambar yang diperbolehkan (jpeg, jpg, png, ico, gif, webp)'));
+        }
+    }
+});
 
 // 🌟 DATABASE CONNECTION 🌟
 const db = mysql.createConnection({
@@ -934,8 +970,24 @@ app.get('/api/settings', (req, res) => {
   });
 });
 
-app.put('/api/settings', (req, res) => {
-  const { clinic_name, clinic_address, browser_title, logo_url, favicon_url } = req.body;
+app.put('/api/settings', upload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'favicon', maxCount: 1 }
+]), (req, res) => {
+  const { clinic_name, clinic_address, browser_title, existing_logo, existing_favicon } = req.body;
+  
+  let logo_url = existing_logo || null;
+  let favicon_url = existing_favicon || null;
+
+  // Handle logo upload
+  if (req.files.logo && req.files.logo[0]) {
+    logo_url = `/uploads/${req.files.logo[0].filename}`;
+  }
+
+  // Handle favicon upload
+  if (req.files.favicon && req.files.favicon[0]) {
+    favicon_url = `/uploads/${req.files.favicon[0].filename}`;
+  }
 
   db.query('SELECT id FROM settings LIMIT 1', (err, existing) => {
     if (err) return res.status(500).json({ message: 'Gagal memperbarui pengaturan', error: err.message });
@@ -953,7 +1005,7 @@ app.put('/api/settings', (req, res) => {
         [clinic_name, clinic_address, browser_title, logo_url, favicon_url, existing[0].id],
         (err) => {
           if (err) return res.status(500).json({ message: 'Gagal memperbarui pengaturan', error: err.message });
-          res.json({ message: 'Pengaturan berhasil diperbarui' });
+          res.json({ message: 'Pengaturan berhasil diperbarui', logo_url, favicon_url });
         }
       );
     } else {
@@ -964,7 +1016,7 @@ app.put('/api/settings', (req, res) => {
         [clinic_name, clinic_address, browser_title, logo_url, favicon_url],
         (err) => {
           if (err) return res.status(500).json({ message: 'Gagal memperbarui pengaturan', error: err.message });
-          res.json({ message: 'Pengaturan berhasil diperbarui' });
+          res.json({ message: 'Pengaturan berhasil diperbarui', logo_url, favicon_url });
         }
       );
     }
