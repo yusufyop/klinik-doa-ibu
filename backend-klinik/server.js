@@ -1,16 +1,24 @@
 const express = require('express');
-const mysql = require('mysql2');
-// const cors = require('cors');
+const mysql = require('mysql2/promise');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 
-// 🌟 CORS CONFIGURATION 🌟
-const cors = require('cors');
+// 🌟 REQUEST LOGGING MIDDLEWARE 🌟
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
 
-// Konfigurasi CORS yang lebih permisif
+// 🌟 CORS CONFIGURATION 🌟
 app.use(cors({
-  origin: true, // Izinkan semua origin
+  origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Name', 'X-User-Role']
@@ -21,24 +29,40 @@ app.options('*', cors());
 
 app.use(express.json());
 
-// 🌟 DATABASE CONNECTION 🌟
-const db = mysql.createConnection({
+// 🌟 RATE LIMITING 🌟
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' }
+});
+app.use('/api/', limiter);
+
+// 🌟 DATABASE CONNECTION WITH POOL 🌟
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 4000,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
 });
 
-db.connect(err => {
-  if (err) {
+// Test connection on startup
+(async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log('✅ Konek MySQL Sukses!');
+    connection.release();
+  } catch (err) {
     console.error('❌ Gagal konek MySQL:', err);
     process.exit(1);
-  } else {
-    console.log('✅ Konek MySQL Sukses!');
   }
-});
+})();
 
 // 🌟 HELPER FUNCTIONS 🌟
 const clean = (val) => (val === '' || val === undefined || val === null ? null : val);
@@ -47,19 +71,20 @@ const formatDate = (date) => {
   return new Date(date).toISOString().split('T')[0];
 };
 
-// 🌟 AUDIT LOG FUNCTION 🌟
-const logAudit = (req, action_type, target_table, target_id, description) => {
+// 🌟 AUDIT LOG FUNCTION (ASYNC) 🌟
+const logAudit = async (req, action_type, target_table, target_id, description) => {
   const user_id = req.headers['x-user-id'] || null;
   const user_name = req.headers['x-user-name'] || 'Guest';
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   
-  db.query(
-    `INSERT INTO audit_logs (user_id, user_name, action_type, target_table, target_id, description, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [user_id, user_name, action_type, target_table, target_id, description, ip],
-    (err) => {
-      if (err) console.error('Audit log error:', err);
-    }
-  );
+  try {
+    await pool.query(
+      `INSERT INTO audit_logs (user_id, user_name, action_type, target_table, target_id, description, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [user_id, user_name, action_type, target_table, target_id, description, ip]
+    );
+  } catch (err) {
+    console.error('Audit log error:', err);
+  }
 };
 
 // 🌟 SIMPLE IN-MEMORY CACHE 🌟
@@ -101,15 +126,15 @@ const paginate = (req, res, next) => {
 // 🔐 AUTHENTICATION
 // ============================================
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   
-  db.query(`SELECT * FROM users WHERE email = ? AND password_hash = ?`, [email, password], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const [results] = await pool.query(`SELECT * FROM users WHERE email = ? AND password_hash = ?`, [email, password]);
     
     if (results.length === 0) {
-      db.query(
+      await pool.query(
         `INSERT INTO audit_logs (user_name, action_type, target_table, description, ip_address) VALUES (?, ?, ?, ?, ?)`,
         [email, 'login', 'users', `Login gagal: ${email}`, ip]
       );
@@ -117,7 +142,7 @@ app.post('/api/login', (req, res) => {
     }
     
     const user = results[0];
-    db.query(
+    await pool.query(
       `INSERT INTO audit_logs (user_id, user_name, action_type, target_table, target_id, description, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [user.id, user.nama_lengkap, 'login', 'users', user.id, `Login berhasil`, ip]
     );
@@ -130,7 +155,10 @@ app.post('/api/login', (req, res) => {
         role: user.role
       }
     });
-  });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ============================================
